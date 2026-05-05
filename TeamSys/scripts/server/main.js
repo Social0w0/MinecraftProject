@@ -1,14 +1,9 @@
-import {
-  world,
-  system,
-  DisplaySlotId
-} from "@minecraft/server";
+import { world, system } from "@minecraft/server";
 
 //  ---------------------------------------------
 //  설정
 //  ---------------------------------------------
 const SCOREBOARD_NAME = "team";          // scoreboard 이름
-const BELOWNAME_OBJ   = "teamDisplay";  // belowname 용 objective 이름
 const DEFAULT_TEAMS   = 3;              // 기본 팀 수
 const CMD_ADD_TEAM    = "!추가";        // 팀 추가 명령어
 const CMD_LIST        = "!팀목록";      // 팀 목록 확인 명령어
@@ -42,7 +37,6 @@ const TEAM_COLORS = [
 // ---------------------------------------------
 let totalTeams = DEFAULT_TEAMS;  // 현재 팀 수
 let teamObjective = null;         // scoreboard objective (team)
-let displayObjective = null;      // scoreboard objective (belowname)
 
 // 팀 채팅 모드 활성화 플레이어 이름 Set
 const teamChatMode = new Set();
@@ -71,26 +65,25 @@ function getPlayerTeam(player) {
 /** 플레이어에 팀 설정 (teamNum은 0-based) */
 function setPlayerTeam(player, teamNum) {
   teamObjective.setScore(player, teamNum + 1); // 팀0 = 1점
-  updateDisplayScore(player, teamNum);
+  updateNameTag(player, teamNum);
 }
 
-/**
- * belowname objective 점수 업데이트
- * belowname 은 숫자만 표시하므로, 팀 번호를 그대로 저장하고
- * displayName 을 통해 색상 헤더를 설정합니다.
- * (실제 색상 구분은 scoreboard display sidebar 등으로 보완)
- */
-function updateDisplayScore(player, teamNum) {
-  try {
-    displayObjective.setScore(player, teamNum + 1);
-  } catch { /* ignore */ }
+/** 플레이어 nameTag 갱신 (팀 접두사 + 원래 이름) */
+function updateNameTag(player, teamNum) {
+  if (teamNum < 0) {
+    // 팀 없음 → 원본 이름 복원
+    player.nameTag = player.name;
+  } else {
+    const col = getTeamColor(teamNum);
+    player.nameTag = `${col.code}[${col.name.replace(/§[0-9a-fA-Fk-or]/g, "")}]§r ${player.name}`;
+  }
 }
 
-/** 전체 플레이어 belowname 갱신 */
-function refreshAllDisplayScores() {
+/** 전체 플레이어 nameTag 갱신 */
+function refreshAllNameTags() {
   for (const player of world.getAllPlayers()) {
     const t = getPlayerTeam(player);
-    if (t >= 0) updateDisplayScore(player, t);
+    updateNameTag(player, t);
   }
 }
 
@@ -151,24 +144,8 @@ function initScoreboards() {
     teamObjective = world.scoreboard.addObjective(SCOREBOARD_NAME, "팀");
   }
 
-  // belowname display objective
-  try {
-    displayObjective = world.scoreboard.getObjective(BELOWNAME_OBJ);
-    if (!displayObjective) {
-      displayObjective = world.scoreboard.addObjective(BELOWNAME_OBJ, "§7팀");
-    }
-  } catch {
-    displayObjective = world.scoreboard.addObjective(BELOWNAME_OBJ, "§7팀");
-  }
-
-  // belowname 슬롯에 표시
-  try {
-    world.scoreboard.setObjectiveAtDisplaySlot(DisplaySlotId.BelowName, {
-      objective: displayObjective
-    });
-  } catch (e) {
-    console.warn("[시스템] belowname 슬롯 설정 실패:", e);
-  }
+  // 기존 팀 데이터가 있는 플레이어의 nameTag 복원
+  refreshAllNameTags();
 }
 
 //  ---------------------------------------------
@@ -289,11 +266,10 @@ world.beforeEvents.chatSend.subscribe((ev) => {
   if (msg === CMD_RESET) {
     ev.cancel = true;
     system.run(() => {
-      // 모든 플레이어 점수 제거
-      for (const player of world.getAllPlayers()) {
-        try { teamObjective.removeParticipant(player); } catch { /* ignore */ }
-        try { displayObjective.removeParticipant(player); } catch { /* ignore */ }
-        teamChatMode.delete(player.name);
+      for (const p of world.getAllPlayers()) {
+        try { teamObjective.removeParticipant(p); } catch { /* ignore */ }
+        teamChatMode.delete(p.name);
+        p.nameTag = p.name; // 닉네임 원상 복구
       }
       totalTeams = DEFAULT_TEAMS;
       world.sendMessage(`§l[시스템]§r §c모든 팀이 초기화되었습니다. §7(기본 ${DEFAULT_TEAMS}팀)`);
@@ -346,7 +322,7 @@ world.beforeEvents.entityHurt.subscribe((ev) => {
 });
 
 // ---------------------------------------------
-//  플레이어 입장 시 안내
+//  플레이어 입장 시 안내 + nameTag 복원
 // ---------------------------------------------
 world.afterEvents.playerSpawn.subscribe((ev) => {
   if (!ev.initialSpawn) return;
@@ -360,9 +336,10 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
         `§e${CMD_ASSIGN}§r 으로 자동 팀 배정, §e${CMD_HELP}§r 으로 명령어 확인`
       );
     } else {
+      updateNameTag(player, t); // 재접속 시 nameTag 복원
       const col = getTeamColor(t);
       player.sendMessage(`§l[시스템]§r 현재 ${col.name}§r 소속입니다.`);
-      player.sendMessage('§e${CMD_HELP}§r 으로 명령어 확인이 가능합니다.')
+      player.sendMessage(`§e${CMD_HELP}§r 으로 명령어 확인이 가능합니다.`);
     }
   }, 40);
 });
