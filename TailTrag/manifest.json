@@ -1,0 +1,59 @@
+{
+	"format_version": 2,
+	"metadata": {
+		"authors": [
+			"bridge."
+		],
+		"generated_with": {
+			"bridge": [
+				"2.7.54"
+			],
+			"dash": [
+				"0.11.7"
+			]
+		}
+	},
+	"header": {
+		"name": "꼬리잡기",
+		"description": "made by social0w0 vv",
+		"min_engine_version": [
+			1,
+			21,
+			120
+		],
+		"uuid": "add9bd5e-3c9c-4bcf-86e5-acca1711a2ba",
+		"version": [
+			1,
+			0,
+			2
+		]
+	},
+	"modules": [
+		{
+			"type": "data",
+			"uuid": "93615642-7ed9-4e56-a070-874bceaf5223",
+			"version": [
+				1,
+				0,
+				0
+			]
+		},
+		{
+			"type": "script",
+			"language": "javascript",
+			"uuid": "5a7a7919-4017-4cfc-af4e-4b80357f9c8b",
+			"entry": "scripts/main.js",
+			"version": [
+				1,
+				0,
+				0
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"module_name": "@minecraft/server",
+			"version": "2.8.0-beta"
+		}
+	]
+}

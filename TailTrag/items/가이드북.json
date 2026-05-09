@@ -1,0 +1,27 @@
+{
+	"format_version": "1.20.20",
+	"minecraft:item": {
+		"description": {
+			"identifier": "social:menu",
+			"menu_category": {
+				"category": "equipment"
+			}
+		},
+		"components": {
+			"minecraft:glint": true,
+			"minecraft:max_stack_size": 1,
+			"minecraft:can_destroy_in_creative": false,
+			"minecraft:display_name": {
+				"value": "가이드북"
+			},
+			"minecraft:hover_text_color": "aqua",
+			"minecraft:icon": {
+				"texture": "book_writable"
+			},
+			"minecraft:cooldown": {
+				"category": "menu",
+				"duration": 0.2
+			}
+		}
+	}
+}
